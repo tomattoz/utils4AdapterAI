@@ -17,7 +17,7 @@ let package = Package(
         .target(name: "Utils9AIAdapter",
                 dependencies: [
                     .product(name: "Utils9", package: "utils"),
-                    .product(name: "CryptoUtils9", package: "utils4Crypto")
+                    .product(name: "Utils9Crypto", package: "utils4Crypto")
                 ],
                 path: "Sources")
     ]

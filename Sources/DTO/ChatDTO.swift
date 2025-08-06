@@ -1,7 +1,7 @@
 //  Created by Ivan Kh on 11.09.2024.
 
 import Foundation
-import CryptoUtils9
+import Utils9Crypto
 
 public struct ChatDTO {}
 
