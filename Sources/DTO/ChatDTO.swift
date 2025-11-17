@@ -43,7 +43,7 @@ public extension ChatDTO {
 }
 
 public extension ChatDTO {
-    struct Request: Sendable, Codable, StringHashable {
+    struct Request: Sendable, Codable, StringHashable, ProviderDTO.Request, ConversationDTO.Request {
         public let user: String
         public let email: String?
         public let plan: Payment.Plan
