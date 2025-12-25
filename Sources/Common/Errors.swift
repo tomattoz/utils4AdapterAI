@@ -3,13 +3,13 @@
 import Foundation
 import Utils9
 
-public enum ContentError: Error, Codable, LocalizedError, AdditionalInfoError {
+public enum ContentError: Error, Codable, DisplayError, AdditionalInfoError {
     case empty
     case unsupported
     case modelUnsupportedByPlan(String)
     case decoding(String)
 
-    public var errorDescription: String? {
+    public var displayDescription: String {
         switch self {
         case .empty:
             "The response is empty"
@@ -30,11 +30,11 @@ public enum ContentError: Error, Codable, LocalizedError, AdditionalInfoError {
     }
 }
 
-public enum HTTPError: Error, Codable, LocalizedError {
+public enum HTTPError: Error, Codable, DisplayError {
     case invalidHash
     case unknown(statusCode: UInt)
     
-    public var errorDescription: String? {
+    public var displayDescription: String {
         switch self {
         case .unknown(let statusCode):
             return "Unknown error occured with status code \(statusCode)"
@@ -69,7 +69,7 @@ public struct GenericError: LocalizedError, CustomStringConvertible, Codable {
     }
 }
 
-public struct OpenAIAPIError: Error, Codable {
+public struct OpenAIAPIError: Error, Codable, DisplayError {
     public let message: String
     public let type: String?
     public let param: String?
@@ -81,12 +81,16 @@ public struct OpenAIAPIError: Error, Codable {
         self.param = param
         self.code = code
     }
+    
+    public var displayDescription: String {
+        message
+    }
 }
 
-public enum OpenAIError: Error, Codable, LocalizedError {
+public enum OpenAIError: Error, Codable, DisplayError {
     case apiKeyIsEmpty
    
-    public var errorDescription: String? {
+    public var displayDescription: String {
         switch self {
         case .apiKeyIsEmpty:
             return "Please open application Settings and enter OpenAI API key"
