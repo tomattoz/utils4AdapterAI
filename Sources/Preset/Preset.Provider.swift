@@ -56,13 +56,13 @@ public extension Preset {
         public var name: String {
             switch self {
             case .chatGPT(let version):
-                switch version { case .default: return "ChatGPT" }
+                switch version { case .default: return "Text" }
             case .dalle(let version):
-                switch version { case .default: return "DALL·E image" }
+                switch version { case .default: return "Image" }
             case .gemini(let version):
                 switch version { case .default: return "Gemini" }
             case .sora(let version):
-                switch version { case .image: return "Sora image" }
+                switch version { case .image: return "Image V2" }
             }
         }
 
