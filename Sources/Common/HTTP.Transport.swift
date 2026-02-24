@@ -6,6 +6,97 @@ import FoundationNetworking
 import Foundation
 import Utils9
 
+public protocol HTTPTransport {
+    func data(_ request: URLRequest) async throws
+    -> (response: HTTPURLResponse, data: Data)
+    
+    func stream(_ request: URLRequest) async throws
+    -> (response: HTTPURLResponse, stream: AsyncThrowingStream<Data, Error>)
+}
+
+open class HTTPTransportErrorHandler: HTTPTransport {
+    private let inner: HTTPTransport
+    
+    public init(_ inner: HTTPTransport) {
+        self.inner = inner
+    }
+    
+    public func data(_ request: URLRequest) async throws
+    -> (response: HTTPURLResponse, data: Data) {
+        let result = try await inner.data(request)
+        try await handleError(result.response) { result.data }
+        return result
+    }
+    
+    public func stream(_ request: URLRequest) async throws
+    -> (response: HTTPURLResponse, stream: AsyncThrowingStream<Data, any Error>) {
+        let result = try await inner.stream(request)
+        try await handleError(result.response) {
+            try await result.stream.reduce(into: Data()) {
+                $0.append($1)
+            }
+        }
+        return result
+    }
+    
+    open func handleError(_ response: HTTPURLResponse, data: Data) throws {
+        assertionFailure() // For override
+    }
+    
+    private func handleError(_ response: HTTPURLResponse, data: () async throws -> Data) async throws {
+        guard !response.statusCodeOK else { return }
+        try handleError(response, data: try await data())
+    }
+}
+
+public class HTTPTransportServerErrorHandler: HTTPTransportErrorHandler {
+    public override func handleError(_ response: HTTPURLResponse, data: Data) throws {
+        var serverError: ServerError?
+             
+        do {
+            serverError = try JSONDecoder().decode(ServerError.self, from: data)
+        }
+        catch {
+            try throwErrorForStatusCode(response)
+        }
+        
+        if let serverError {
+            switch serverError {
+            case .http(let error): throw error
+            case .registration(let error): throw error
+            case .content(let error): throw error
+            case .openai(let error): throw error
+            case .openai2(let error): throw error
+            case .generic(let error): throw error
+            }
+        }
+        else {
+            try throwErrorForStatusCode(response)
+        }
+    }
+    
+    private func throwErrorForStatusCode(_ response: HTTPURLResponse) throws {
+        if response.statusCode == 504 {
+            throw Error9.Timeout()
+        }
+        else {
+            throw StringError(HTTPURLResponse.localizedString(forStatusCode: response.statusCode))
+        }
+    }
+}
+
+public struct HTTPTransportStub: HTTPTransport {
+    public init() {}
+    
+    public func data(_ request: URLRequest) async throws -> (response: HTTPURLResponse, data: Data) {
+        throw Error9.unsupported
+    }
+    
+    public func stream(_ request: URLRequest) async throws -> (response: HTTPURLResponse, stream: AsyncThrowingStream<Data, Error>) {
+        throw Error9.unsupported
+    }
+}
+
 #if !os(Linux)
 @available(macOS 12.0, *)
 open class HTTPTransportURLSession: HTTPTransport {
