@@ -49,6 +49,30 @@ open class HTTPTransportErrorHandler: HTTPTransport {
     }
 }
 
+public class HTTPTransportQueued: HTTPTransport {
+    private let queue: AsyncThrowingQueue
+    private let inner: HTTPTransport
+    
+    public init(queue: AsyncThrowingQueue, inner: HTTPTransport) {
+        self.queue = queue
+        self.inner = inner
+    }
+    
+    public func data(_ request: URLRequest) async throws
+    -> (response: HTTPURLResponse, data: Data) {
+        try await queue.exec {
+            try await inner.data(request)
+        }
+    }
+    
+    public func stream(_ request: URLRequest) async throws
+    -> (response: HTTPURLResponse, stream: AsyncThrowingStream<Data, Error>) {
+        try await queue.exec {
+            try await inner.stream(request)
+        }
+    }
+}
+
 public class HTTPTransportServerErrorHandler: HTTPTransportErrorHandler {
     public override func handleError(_ response: HTTPURLResponse, data: Data) throws {
         var serverError: ServerError?
