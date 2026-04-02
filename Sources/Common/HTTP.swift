@@ -30,7 +30,7 @@ public enum HTTPMethod: String, Codable, Sendable, Equatable, Identifiable {
 public protocol HTTPProvider {
     var transport: HTTPTransport { get }
     
-    func get<T: StringHashable & Encodable>(at path: String, data: T) throws
+    func get(at path: String) throws
     -> URLRequest
     
     func post<T: StringHashable & Encodable>(at path: String, data: T) throws
@@ -71,9 +71,10 @@ public final class HTTPProviderDefault: HTTPProvider {
         self.transport = transport
     }
 
-    public func get<T: StringHashable & Encodable>(at path: String, data: T) throws
+    public func get(at path: String) throws
     -> URLRequest {
-        try request(at: path, data: data, method: .get)
+        let data: DataStub? = nil
+        return try request(at: path, data: data, method: .get)
     }
     
     public func post<T: StringHashable & Encodable>(at path: String, data: T) throws
@@ -100,14 +101,22 @@ private extension HTTPProviderDefault {
     }
     
     func request<T: StringHashable & Encodable>(at path: String,
-                                                data: T,
+                                                data: T?,
                                                 method: Utils9AIAdapter.HTTPMethod) throws
     -> URLRequest {
         var request = request(for: path)
-        let requestData = try JSONEncoder().encode(data)
+        var requestData: Data?
+        
+        if let data {
+            requestData = try JSONEncoder().encode(data)
+        }
         
         request.setValue("application/json", forHTTPHeaderField: .httpHeaderContentType)
-        request.setValue(data.stringHash(salt: salt), forHTTPHeaderField: .httpHeaderContentHash)
+        
+        if let data {
+            request.setValue(data.stringHash(salt: salt), forHTTPHeaderField: .httpHeaderContentHash)
+        }
+        
         request.httpBody = requestData
         request.httpMethod = method.rawValue
         
@@ -126,7 +135,7 @@ public struct HTTPProviderStub: HTTPProvider {
     
     public init() {}
     
-    public func get<T: StringHashable & Encodable>(at path: String, data: T) throws -> URLRequest {
+    public func get(at path: String) throws -> URLRequest {
         throw Error9.unsupported
     }
     
@@ -137,4 +146,9 @@ public struct HTTPProviderStub: HTTPProvider {
     public func object<T: Decodable & StringHashable>(_ request: URLRequest) async throws -> (response: HTTPURLResponse, object: T) {
         throw Error9.unsupported
     }
+}
+
+private struct DataStub: StringHashable, Encodable {
+    private init() {}
+    func stringHash(salt: String) -> String { "" }
 }
